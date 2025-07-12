@@ -110,12 +110,12 @@ export function SearchAndFilter({
             {/* Language Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Language</label>
-              <Select value={selectedLanguage} onValueChange={onLanguageChange}>
+              <Select value={selectedLanguage || "all"} onValueChange={(value) => onLanguageChange(value === "all" ? "" : value)}>
                 <SelectTrigger className="bg-background/50 border-border/50">
                   <SelectValue placeholder="All languages" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border-border/50">
-                  <SelectItem value="">All languages</SelectItem>
+                  <SelectItem value="all">All languages</SelectItem>
                   {languages.map((lang) => (
                     <SelectItem key={lang} value={lang}>
                       {lang}
