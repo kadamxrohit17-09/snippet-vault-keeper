@@ -39,10 +39,10 @@ export function Navbar() {
                 <Button variant="ghost" className="flex items-center gap-2 hover:bg-primary/10">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-primary/20 text-primary font-medium">
-                      {user.name.charAt(0).toUpperCase()}
+                      {((user.user_metadata?.name || user.email)?.charAt(0) || 'U').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:block text-foreground">{user.name}</span>
+                  <span className="hidden sm:block text-foreground">{user.user_metadata?.name || user.email}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
@@ -52,11 +52,11 @@ export function Navbar() {
                 <div className="flex items-center gap-2 p-2">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-primary/20 text-primary font-medium">
-                      {user.name.charAt(0).toUpperCase()}
+                      {((user.user_metadata?.name || user.email)?.charAt(0) || 'U').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium">{user.name}</span>
+                    <span className="text-sm font-medium">{user.user_metadata?.name || 'User'}</span>
                     <span className="text-xs text-muted-foreground">{user.email}</span>
                   </div>
                 </div>
