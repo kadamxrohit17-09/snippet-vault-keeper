@@ -1,10 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
@@ -23,7 +28,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+          });
+        } else {
+          setUser(null);
+        }
         setIsLoading(false);
       }
     );
@@ -31,7 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+        });
+      }
       setIsLoading(false);
     });
 
@@ -89,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
