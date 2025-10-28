@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
@@ -195,7 +195,7 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const searchSnippets = (query: string, filters?: { language?: string; tags?: string[] }) => {
+  const searchSnippets = useCallback((query: string, filters?: { language?: string; tags?: string[] }) => {
     return snippets.filter(snippet => {
       const matchesQuery = !query || 
         snippet.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -210,11 +210,12 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
 
       return matchesQuery && matchesLanguage && matchesTags;
     });
-  };
+  }, [snippets]);
 
-  const allTags = Array.from(
-    new Set(snippets.flatMap(snippet => snippet.tags))
-  ).sort();
+  const allTags = useMemo(() => 
+    Array.from(new Set(snippets.flatMap(snippet => snippet.tags))).sort(),
+    [snippets]
+  );
 
   return (
     <SnippetContext.Provider value={{
