@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Save, X, Plus, Code } from 'lucide-react';
-import { Editor } from '@monaco-editor/react';
+import { LazyEditor } from './LazyEditor';
 import { snippetSchema, type SnippetFormData } from '@/lib/validations';
 
 interface SnippetFormProps {
@@ -230,7 +230,7 @@ export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
                 control={control}
                 render={({ field }) => (
                   <div className="border border-border/50 rounded-md overflow-hidden">
-                    <Editor
+                    <LazyEditor
                       height="300px"
                       language={watch('language')}
                       value={field.value}
