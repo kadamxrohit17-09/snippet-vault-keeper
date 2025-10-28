@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,51 +8,24 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import { registerSchema, type RegisterFormData } from '@/lib/validations';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
 }
 
 export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { register, isLoading } = useAuth();
+  const { register: registerUser, isLoading } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name || !email || !password || !confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
-      return;
-    }
+  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    mode: 'onBlur'
+  });
 
-    if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const success = await register(email, password, name);
+  const onSubmit = async (data: RegisterFormData) => {
+    const success = await registerUser(data.email, data.password, data.name);
     if (success) {
       toast({
         title: "Welcome!",
@@ -76,17 +51,19 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <Input
               id="name"
               type="text"
               placeholder="Enter your full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              {...register('name')}
               className="bg-background/50 border-border/50 focus:border-primary/50"
             />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -95,10 +72,12 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
               id="email"
               type="email"
               placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...register('email')}
               className="bg-background/50 border-border/50 focus:border-primary/50"
             />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -107,9 +86,8 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters with uppercase, number, and special character"
+                {...register('password')}
                 className="bg-background/50 border-border/50 focus:border-primary/50 pr-10"
               />
               <Button
@@ -126,6 +104,9 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                 )}
               </Button>
             </div>
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -134,10 +115,12 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
               id="confirmPassword"
               type={showPassword ? 'text' : 'password'}
               placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              {...register('confirmPassword')}
               className="bg-background/50 border-border/50 focus:border-primary/50"
             />
+            {errors.confirmPassword && (
+              <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+            )}
           </div>
 
           <Button 

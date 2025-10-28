@@ -65,13 +65,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        console.error('Login error:', error.message);
+        if (import.meta.env.DEV) {
+          console.error('Login error:', error.message);
+        }
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error('Login exception:', error);
+      if (import.meta.env.DEV) {
+        console.error('Login exception:', error);
+      }
       return false;
     }
   };
@@ -92,13 +96,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        console.error('Registration error:', error.message);
+        if (import.meta.env.DEV) {
+          console.error('Registration error:', error.message);
+        }
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error('Registration exception:', error);
+      if (import.meta.env.DEV) {
+        console.error('Registration exception:', error);
+      }
       return false;
     }
   };

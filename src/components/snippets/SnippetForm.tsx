@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CodeSnippet, useSnippets } from '@/contexts/SnippetContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -11,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Save, X, Plus, Code } from 'lucide-react';
 import { Editor } from '@monaco-editor/react';
+import { snippetSchema, type SnippetFormData } from '@/lib/validations';
 
 interface SnippetFormProps {
   snippet?: CodeSnippet;
@@ -19,29 +22,27 @@ interface SnippetFormProps {
 }
 
 export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
-  const [title, setTitle] = useState(snippet?.title || '');
-  const [description, setDescription] = useState(snippet?.description || '');
-  const [code, setCode] = useState(snippet?.code || '');
-  const [language, setLanguage] = useState(snippet?.language || 'javascript');
-  const [tags, setTags] = useState<string[]>(snippet?.tags || []);
   const [newTag, setNewTag] = useState('');
   
   const { addSnippet, updateSnippet, languages } = useSnippets();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title.trim() || !code.trim()) {
-      toast({
-        title: "Error",
-        description: "Title and code are required",
-        variant: "destructive"
-      });
-      return;
+  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<SnippetFormData>({
+    resolver: zodResolver(snippetSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      title: snippet?.title || '',
+      description: snippet?.description || '',
+      code: snippet?.code || '',
+      language: (snippet?.language as SnippetFormData['language']) || 'javascript',
+      tags: snippet?.tags || []
     }
+  });
 
+  const tags = watch('tags');
+
+  const onSubmit = (data: SnippetFormData) => {
     if (!user) {
       toast({
         title: "Error",
@@ -52,11 +53,11 @@ export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
     }
 
     const snippetData = {
-      title: title.trim(),
-      description: description.trim(),
-      code: code.trim(),
-      language,
-      tags: tags.filter(tag => tag.trim()),
+      title: data.title,
+      description: data.description || '',
+      code: data.code,
+      language: data.language,
+      tags: data.tags,
       userId: user.id
     };
 
@@ -79,14 +80,21 @@ export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
   };
 
   const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim().toLowerCase()]);
+    const trimmedTag = newTag.trim().toLowerCase();
+    if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 10) {
+      setValue('tags', [...tags, trimmedTag], { shouldValidate: true });
       setNewTag('');
+    } else if (tags.length >= 10) {
+      toast({
+        title: "Maximum tags reached",
+        description: "You can add up to 10 tags per snippet",
+        variant: "destructive"
+      });
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setValue('tags', tags.filter(tag => tag !== tagToRemove), { shouldValidate: true });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -115,34 +123,44 @@ export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
         </CardHeader>
         
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
                 <Input
                   id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  {...register('title')}
                   placeholder="Enter snippet title"
                   className="bg-background/50 border-border/50 focus:border-primary/50"
-                  required
                 />
+                {errors.title && (
+                  <p className="text-sm text-destructive">{errors.title.message}</p>
+                )}
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="language">Language</Label>
-                <Select value={language} onValueChange={setLanguage}>
-                  <SelectTrigger className="bg-background/50 border-border/50 focus:border-primary/50">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border/50">
-                    {languages.map((lang) => (
-                      <SelectItem key={lang} value={lang}>
-                        {lang}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="language"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="bg-background/50 border-border/50 focus:border-primary/50">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-border/50">
+                        {languages.map((lang) => (
+                          <SelectItem key={lang} value={lang}>
+                            {lang}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.language && (
+                  <p className="text-sm text-destructive">{errors.language.message}</p>
+                )}
               </div>
             </div>
 
@@ -150,16 +168,18 @@ export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what this snippet does"
+                {...register('description')}
+                placeholder="Describe what this snippet does (max 1000 characters)"
                 className="bg-background/50 border-border/50 focus:border-primary/50 resize-none"
                 rows={3}
               />
+              {errors.description && (
+                <p className="text-sm text-destructive">{errors.description.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label>Tags</Label>
+              <Label>Tags (max 10)</Label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {tags.map((tag) => (
                   <Badge
@@ -185,7 +205,7 @@ export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Add a tag"
+                  placeholder="Add a tag (max 50 characters)"
                   className="bg-background/50 border-border/50 focus:border-primary/50"
                 />
                 <Button
@@ -193,33 +213,46 @@ export function SnippetForm({ snippet, onClose, onSave }: SnippetFormProps) {
                   variant="outline"
                   onClick={addTag}
                   className="shrink-0"
+                  disabled={tags.length >= 10}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
+              {errors.tags && (
+                <p className="text-sm text-destructive">{errors.tags.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="code">Code *</Label>
-              <div className="border border-border/50 rounded-md overflow-hidden">
-                <Editor
-                  height="300px"
-                  language={language}
-                  value={code}
-                  onChange={(value) => setCode(value || '')}
-                  theme="vs-dark"
-                  options={{
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    fontSize: 14,
-                    lineNumbers: 'on',
-                    roundedSelection: false,
-                    scrollbar: {
-                      alwaysConsumeMouseWheel: false,
-                    },
-                  }}
-                />
-              </div>
+              <Label htmlFor="code">Code * (max 50KB)</Label>
+              <Controller
+                name="code"
+                control={control}
+                render={({ field }) => (
+                  <div className="border border-border/50 rounded-md overflow-hidden">
+                    <Editor
+                      height="300px"
+                      language={watch('language')}
+                      value={field.value}
+                      onChange={(value) => field.onChange(value || '')}
+                      theme="vs-dark"
+                      options={{
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        roundedSelection: false,
+                        scrollbar: {
+                          alwaysConsumeMouseWheel: false,
+                        },
+                      }}
+                    />
+                  </div>
+                )}
+              />
+              {errors.code && (
+                <p className="text-sm text-destructive">{errors.code.message}</p>
+              )}
             </div>
 
             <div className="flex gap-3 justify-end">
