@@ -39,6 +39,28 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user) {
       fetchSnippets();
+      
+      // Subscribe to realtime updates
+      const channel = supabase
+        .channel('snippets-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'snippets',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Realtime update:', payload);
+            fetchSnippets(); // Refresh snippets on any change
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     } else {
       setSnippets([]);
     }

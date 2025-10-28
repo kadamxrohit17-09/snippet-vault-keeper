@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Edit, Trash2, Code, Calendar } from 'lucide-react';
+import { Copy, Edit, Trash2, Code, Calendar, Sparkles, Share2 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { AIAnalysisDialog } from './AIAnalysisDialog';
+import { ShareDialog } from './ShareDialog';
 
 interface SnippetCardProps {
   snippet: CodeSnippet;
@@ -16,6 +18,8 @@ interface SnippetCardProps {
 
 export function SnippetCard({ snippet, onEdit, onDelete }: SnippetCardProps) {
   const [showFullCode, setShowFullCode] = useState(false);
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const { toast } = useToast();
 
   const copyToClipboard = async () => {
@@ -60,6 +64,24 @@ export function SnippetCard({ snippet, onEdit, onDelete }: SnippetCardProps) {
             </CardDescription>
           </div>
           <div className="flex gap-1 ml-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAIAnalysis(true)}
+              className="hover:bg-primary/10 hover:text-primary"
+              title="AI Analysis"
+            >
+              <Sparkles className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowShare(true)}
+              className="hover:bg-primary/10 hover:text-primary"
+              title="Share Snippet"
+            >
+              <Share2 className="w-4 h-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -135,6 +157,19 @@ export function SnippetCard({ snippet, onEdit, onDelete }: SnippetCardProps) {
           )}
         </div>
       </CardContent>
+      
+      <AIAnalysisDialog 
+        code={snippet.code}
+        language={snippet.language}
+        open={showAIAnalysis}
+        onOpenChange={setShowAIAnalysis}
+      />
+      
+      <ShareDialog
+        snippetId={snippet.id}
+        open={showShare}
+        onOpenChange={setShowShare}
+      />
     </Card>
   );
 }

@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      snippet_shares: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          share_token: string
+          snippet_id: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          share_token: string
+          snippet_id: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          share_token?: string
+          snippet_id?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snippet_shares_snippet_id_fkey"
+            columns: ["snippet_id"]
+            isOneToOne: false
+            referencedRelation: "snippets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       snippets: {
         Row: {
           code: string
