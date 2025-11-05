@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Chrome } from 'lucide-react';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 
 interface LoginFormProps {
@@ -16,7 +16,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, loginWithGoogle } = useAuth();
   const { toast } = useToast();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
@@ -34,16 +34,16 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     } else {
       toast({
         title: "Login failed",
-        description: "Invalid email or password",
+        description: "Invalid email or password. If you just registered, check your email to confirm your account.",
         variant: "destructive"
       });
     }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-gradient-card border-border/50 shadow-card animate-fade-in">
+    <Card className="w-full max-w-md mx-auto glass border-border/50 shadow-elegant animate-fade-in bounce-in hover-lift">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <CardTitle className="text-2xl font-bold gradient-text text-glow">
           Welcome Back
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -120,6 +120,26 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             >
               Don't have an account? Sign up
             </Button>
+
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <span className="w-full border-t border-border/50" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-background px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={loginWithGoogle}
+            disabled={isLoading}
+          >
+            <Chrome className="w-4 h-4 mr-2" />
+            Continue with Google
+          </Button>
           </div>
         </form>
       </CardContent>

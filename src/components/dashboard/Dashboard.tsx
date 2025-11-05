@@ -25,9 +25,10 @@ export function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [deleteSnippetId, setDeleteSnippetId] = useState<string | null>(null);
 
-  const { snippets, deleteSnippet } = useSnippets();
+  const { snippets, deleteSnippet, searchSnippets, favoriteSnippets } = useSnippets();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -36,21 +37,13 @@ export function Dashboard() {
 
   // Apply search and filters
   const filteredSnippets = useMemo(() => {
-    return userSnippets.filter(snippet => {
-      const matchesSearch = !searchQuery || 
-        snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        snippet.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        snippet.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        snippet.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesLanguage = !selectedLanguage || snippet.language === selectedLanguage;
-      
-      const matchesTags = selectedTags.length === 0 || 
-        selectedTags.some(tag => snippet.tags.includes(tag));
-
-      return matchesSearch && matchesLanguage && matchesTags;
+    const filtered = searchSnippets(searchQuery, {
+      language: selectedLanguage || undefined,
+      tags: selectedTags.length > 0 ? selectedTags : undefined,
+      favoritesOnly: favoritesOnly || undefined
     });
-  }, [userSnippets, searchQuery, selectedLanguage, selectedTags]);
+    return filtered.filter(snippet => snippet.userId === user?.id);
+  }, [userSnippets, searchQuery, selectedLanguage, selectedTags, favoritesOnly, searchSnippets, user?.id]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -65,7 +58,8 @@ export function Dashboard() {
       total: userSnippets.length,
       languages: Object.keys(languageCounts).length,
       tags: new Set(userSnippets.flatMap(s => s.tags)).size,
-      topLanguage: topLanguage ? topLanguage[0] : 'None'
+      topLanguage: topLanguage ? topLanguage[0] : 'None',
+      favorites: favoriteSnippets.filter(s => s.userId === user?.id).length
     };
   }, [userSnippets]);
 
@@ -95,11 +89,11 @@ export function Dashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pattern-dots">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">My Code Snippets</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 animate-fade-in">
+        <div className="slide-in-left">
+          <h1 className="text-3xl font-bold gradient-text text-glow">My Code Snippets</h1>
           <p className="text-muted-foreground mt-1">
             Organize and manage your reusable code snippets
           </p>
@@ -107,7 +101,8 @@ export function Dashboard() {
         <Button
           onClick={() => setShowForm(true)}
           variant="hero"
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 hover-lift glow-hover ripple slide-in-right"
+          id="new-snippet-btn"
         >
           <Plus className="w-4 h-4" />
           New Snippet
@@ -116,62 +111,66 @@ export function Dashboard() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-gradient-card border-border/50 shadow-card">
+        <Card className="glass border-border/50 shadow-card hover-lift stagger-1 animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Snippets</CardTitle>
-            <Code className="h-4 w-4 text-primary" />
+            <Code className="h-4 w-4 text-primary animate-pulse-glow" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+            <div className="text-2xl font-bold gradient-text">{stats.total}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card border-border/50 shadow-card">
+        <Card className="glass border-border/50 shadow-card hover-lift stagger-2 animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Languages</CardTitle>
-            <BookOpen className="h-4 w-4 text-primary" />
+            <BookOpen className="h-4 w-4 text-primary animate-float" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.languages}</div>
+            <div className="text-2xl font-bold gradient-text">{stats.languages}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card border-border/50 shadow-card">
+        <Card className="glass border-border/50 shadow-card hover-lift stagger-3 animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unique Tags</CardTitle>
-            <Tag className="h-4 w-4 text-primary" />
+            <Tag className="h-4 w-4 text-primary animate-pulse-glow" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.tags}</div>
+            <div className="text-2xl font-bold gradient-text">{stats.tags}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card border-border/50 shadow-card">
+        <Card className="glass border-border/50 shadow-card hover-lift stagger-4 animate-fade-in">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Top Language</CardTitle>
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.topLanguage}</div>
+            <div className="text-2xl font-bold gradient-text">{stats.topLanguage}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Search and Filters */}
-      <SearchAndFilter
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedLanguage={selectedLanguage}
-        onLanguageChange={setSelectedLanguage}
-        selectedTags={selectedTags}
-        onTagsChange={setSelectedTags}
-      />
+      <div className="animate-fade-in">
+        <SearchAndFilter
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={setSelectedLanguage}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          favoritesOnly={favoritesOnly}
+          onFavoritesOnlyChange={setFavoritesOnly}
+        />
+      </div>
 
       {/* Snippets Grid */}
       {filteredSnippets.length === 0 ? (
-        <div className="text-center py-12">
-          <Code className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">
+        <div className="text-center py-12 animate-fade-in">
+          <Code className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-float" />
+          <h3 className="text-xl font-semibold gradient-text mb-2">
             {userSnippets.length === 0 ? 'No snippets yet' : 'No matching snippets'}
           </h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
@@ -184,7 +183,7 @@ export function Dashboard() {
             <Button
               onClick={() => setShowForm(true)}
               variant="hero"
-              className="flex items-center gap-2 mx-auto"
+              className="flex items-center gap-2 mx-auto hover-lift glow-hover ripple"
             >
               <Plus className="w-4 h-4" />
               Create Your First Snippet
@@ -193,13 +192,18 @@ export function Dashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-8">
-          {filteredSnippets.map((snippet) => (
-            <SnippetCard
+          {filteredSnippets.map((snippet, index) => (
+            <div 
               key={snippet.id}
-              snippet={snippet}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+              className="animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <SnippetCard
+                snippet={snippet}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
           ))}
         </div>
       )}

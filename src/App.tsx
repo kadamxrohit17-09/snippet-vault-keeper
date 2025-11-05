@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SnippetProvider } from "./contexts/SnippetContext";
+import { ThemeProvider } from "./components/theme/ThemeProvider";
 import { lazy, Suspense } from "react";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
@@ -51,12 +52,13 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <SnippetProvider>
-          <BrowserRouter>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <SnippetProvider>
+            <BrowserRouter>
             <Suspense fallback={
               <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="text-center">
@@ -90,10 +92,11 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
-          </BrowserRouter>
-        </SnippetProvider>
-      </AuthProvider>
-    </TooltipProvider>
+            </BrowserRouter>
+          </SnippetProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

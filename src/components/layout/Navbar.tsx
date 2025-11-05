@@ -3,6 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Code, User } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,18 +21,29 @@ export function Navbar() {
   };
 
   return (
-    <nav className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+    <nav className="glass-strong border-b border-border/50 sticky top-0 z-40 shadow-card">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+          <div className="flex items-center gap-2 hover-scale transition-transform">
+            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center glow-hover animate-float">
               <Code className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold gradient-text text-glow">
               Code Snippet Saver
             </h1>
           </div>
+
+          {/* Theme & Shortcuts */}
+          {user && (
+            <div className="flex items-center gap-2">
+              <KeyboardShortcuts onNewSnippet={() => {
+                const btn = document.getElementById('new-snippet-btn');
+                btn?.click();
+              }} />
+              <ThemeToggle />
+            </div>
+          )}
 
           {/* User Menu */}
           {user && (
@@ -47,7 +60,7 @@ export function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
-                className="w-56 bg-background border-border/50 shadow-card"
+                className="w-56 glass border-border/50 shadow-elegant animate-scale-in"
               >
                 <div className="flex items-center gap-2 p-2">
                   <Avatar className="w-8 h-8">

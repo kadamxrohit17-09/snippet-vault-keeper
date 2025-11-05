@@ -28,22 +28,24 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     const success = await registerUser(data.email, data.password, data.name);
     if (success) {
       toast({
-        title: "Welcome!",
-        description: "Your account has been created successfully.",
+        title: "Account created!",
+        description: "Please check your email to confirm your account.",
       });
+      // Switch to login form after successful registration
+      setTimeout(() => onSwitchToLogin(), 2000);
     } else {
       toast({
         title: "Registration failed",
-        description: "Please try again",
+        description: "Please try again or check the console for details",
         variant: "destructive"
       });
     }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-gradient-card border-border/50 shadow-card animate-fade-in">
+    <Card className="w-full max-w-md mx-auto glass border-border/50 shadow-elegant animate-fade-in bounce-in hover-lift">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <CardTitle className="text-2xl font-bold gradient-text text-glow">
           Create Account
         </CardTitle>
         <CardDescription className="text-muted-foreground">

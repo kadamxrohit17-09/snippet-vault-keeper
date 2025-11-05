@@ -13,6 +13,8 @@ export interface CodeSnippet {
   createdAt: Date;
   updatedAt: Date;
   userId: string;
+  isFavorite?: boolean;
+  copyCount?: number;
 }
 
 interface SnippetContextType {
@@ -20,9 +22,12 @@ interface SnippetContextType {
   addSnippet: (snippet: Omit<CodeSnippet, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateSnippet: (id: string, snippet: Partial<CodeSnippet>) => Promise<void>;
   deleteSnippet: (id: string) => Promise<void>;
-  searchSnippets: (query: string, filters?: { language?: string; tags?: string[] }) => CodeSnippet[];
+  toggleFavorite: (id: string) => Promise<void>;
+  incrementCopyCount: (id: string) => Promise<void>;
+  searchSnippets: (query: string, filters?: { language?: string; tags?: string[]; favoritesOnly?: boolean }) => CodeSnippet[];
   languages: string[];
   allTags: string[];
+  favoriteSnippets: CodeSnippet[];
 }
 
 const SnippetContext = createContext<SnippetContextType | undefined>(undefined);
@@ -91,6 +96,8 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
         tags: snippet.tags || [],
         createdAt: new Date(snippet.created_at),
         updatedAt: new Date(snippet.updated_at),
+        isFavorite: snippet.is_favorite || false,
+        copyCount: snippet.copy_count || 0,
       }));
 
       setSnippets(mappedSnippets);
@@ -136,6 +143,8 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
         tags: data.tags || [],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
+        isFavorite: data.is_favorite || false,
+        copyCount: data.copy_count || 0,
       };
 
       setSnippets((prev) => [newSnippet, ...prev]);
@@ -159,6 +168,7 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
       if (updates.code !== undefined) updateData.code = updates.code;
       if (updates.language !== undefined) updateData.language = updates.language;
       if (updates.tags !== undefined) updateData.tags = updates.tags;
+      if (updates.isFavorite !== undefined) updateData.is_favorite = updates.isFavorite;
 
       const { data, error } = await supabase
         .from('snippets')
@@ -179,6 +189,8 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
             ? {
                 ...snippet,
                 ...updates,
+                isFavorite: data.is_favorite ?? snippet.isFavorite,
+                copyCount: data.copy_count ?? snippet.copyCount,
                 updatedAt: new Date(data.updated_at),
               }
             : snippet
@@ -217,7 +229,71 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const searchSnippets = useCallback((query: string, filters?: { language?: string; tags?: string[] }) => {
+  const toggleFavorite = async (id: string) => {
+    if (!user) {
+      toast.error('You must be logged in to favorite snippets');
+      return;
+    }
+
+    const snippet = snippets.find(s => s.id === id);
+    if (!snippet) return;
+
+    const newFavoriteState = !snippet.isFavorite;
+
+    try {
+      const { error } = await supabase
+        .from('snippets')
+        .update({ is_favorite: newFavoriteState })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error toggling favorite:', error);
+        toast.error('Failed to update favorite');
+        return;
+      }
+
+      setSnippets((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, isFavorite: newFavoriteState } : s
+        )
+      );
+
+      toast.success(newFavoriteState ? 'Added to favorites' : 'Removed from favorites');
+    } catch (error) {
+      console.error('Exception toggling favorite:', error);
+      toast.error('Failed to update favorite');
+    }
+  };
+
+  const incrementCopyCount = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const snippet = snippets.find(s => s.id === id);
+      const newCount = (snippet?.copyCount || 0) + 1;
+
+      const { error } = await supabase
+        .from('snippets')
+        .update({ copy_count: newCount })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error incrementing copy count:', error);
+        return; // Fail silently for copy tracking
+      }
+
+      setSnippets((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, copyCount: newCount } : s
+        )
+      );
+    } catch (error) {
+      console.error('Exception incrementing copy count:', error);
+      // Fail silently for copy tracking
+    }
+  };
+
+  const searchSnippets = useCallback((query: string, filters?: { language?: string; tags?: string[]; favoritesOnly?: boolean }) => {
     return snippets.filter(snippet => {
       const matchesQuery = !query || 
         snippet.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -230,9 +306,16 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
       const matchesTags = !filters?.tags?.length || 
         filters.tags.some(tag => snippet.tags.includes(tag));
 
-      return matchesQuery && matchesLanguage && matchesTags;
+      const matchesFavorites = !filters?.favoritesOnly || snippet.isFavorite === true;
+
+      return matchesQuery && matchesLanguage && matchesTags && matchesFavorites;
     });
   }, [snippets]);
+
+  const favoriteSnippets = useMemo(() => 
+    snippets.filter(snippet => snippet.isFavorite === true),
+    [snippets]
+  );
 
   const allTags = useMemo(() => 
     Array.from(new Set(snippets.flatMap(snippet => snippet.tags))).sort(),
@@ -245,9 +328,12 @@ export function SnippetProvider({ children }: { children: React.ReactNode }) {
       addSnippet,
       updateSnippet,
       deleteSnippet,
+      toggleFavorite,
+      incrementCopyCount,
       searchSnippets,
       languages: LANGUAGES,
-      allTags
+      allTags,
+      favoriteSnippets
     }}>
       {children}
     </SnippetContext.Provider>
